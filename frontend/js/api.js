@@ -22,6 +22,7 @@ const api = {
     const params = new URLSearchParams();
     if (filtros.data) params.set("data", filtros.data);
     if (filtros.status) params.set("status", filtros.status);
+    if (filtros.busca) params.set("busca", filtros.busca);
     const query = params.toString();
     return requisitar(query ? `${API_URL}?${query}` : API_URL);
   },

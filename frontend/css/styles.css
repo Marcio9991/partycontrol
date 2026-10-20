@@ -95,6 +95,7 @@ input, select, textarea {
 
 .filtros { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
 .filtros .campo { margin-bottom: 0; }
+.campo-busca { min-width: 260px; }
 
 .tabela-wrap { overflow-x: auto; margin-top: 0.75rem; }
 

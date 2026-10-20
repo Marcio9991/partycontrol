@@ -24,6 +24,8 @@ PartyControl/
 │   │   │   └── agendamentoModel.js    # Validação, conflito de horário e consultas
 │   │   ├── routes/
 │   │   │   └── agendamentoRoutes.js   # Mapeamento dos endpoints HTTP
+│   │   ├── utils/
+│   │   │   └── texto.js               # Normalização de texto e busca tolerante a erros
 │   │   └── app.js                     # Configuração do Express e middlewares
 │   ├── server.js                      # Ponto de entrada
 │   └── package.json
@@ -62,9 +64,10 @@ flowchart LR
 
 | Campo | Tipo | Regra |
 |---|---|---|
+| `nome` | texto | obrigatório, **único**, 3 a 80 caracteres (maiúsculas e acentos não diferenciam) |
 | `cliente` | texto | obrigatório, 2 a 100 caracteres |
-| `telefone` | texto | obrigatório, mínimo 10 dígitos (com DDD) |
-| `tipo_evento` | texto | obrigatório, 2 a 60 caracteres |
+| `telefone` | texto | obrigatório, 10 ou 11 dígitos, formatado como `(00) 0 0000-0000` |
+| `tipo_evento` | lista | Aniversário, Casamento, Formatura, Chá de bebê, Chá de panela, Confraternização, Batizado, Reunião ou Outro |
 | `data_evento` | data | obrigatório, formato `AAAA-MM-DD` |
 | `hora_inicio` | hora | obrigatório, formato `HH:MM` |
 | `hora_fim` | hora | obrigatório, maior que `hora_inicio` |
@@ -74,13 +77,22 @@ flowchart LR
 | `observacoes` | texto | opcional, até 500 caracteres |
 
 **Regra de negócio principal:** não é permitido dois agendamentos não cancelados com horários que se
-sobrepõem na mesma data. Nesse caso a API responde **409**.
+sobrepõem na mesma data. Nesse caso a API responde **409**. O mesmo
+código 409 é devolvido quando o nome do agendamento já está em uso.
+
+## Pesquisa
+
+O campo **Pesquisar** procura no nome do agendamento, no cliente e no tipo de evento. A busca
+ignora maiúsculas, minúsculas e acentos e tolera pequenos erros de digitação (por exemplo,
+`aniversrio` encontra "Aniversário" e `casamneto` encontra "Casamento"). A lógica fica em
+`backend/src/utils/texto.js` e usa a distância de Damerau-Levenshtein.
 
 ## Endpoints
 
 | Método | Rota | Corpo | Sucesso | Erros |
 |---|---|---|---|---|
-| GET | `/api/agendamentos` | — (filtros opcionais `?data=` e `?status=`) | 200 + lista | — |
+| GET | `/api/agendamentos` | — (filtros opcionais `?busca=`, `?data=` e `?status=`) | 200 + lista | — |
+| GET | `/api/agendamentos/tipos` | — | 200 + tipos de evento | — |
 | GET | `/api/agendamentos/:id` | — | 200 + agendamento | 400 ID inválido, 404 |
 | POST | `/api/agendamentos` | campos da entidade | 201 + agendamento criado | 400 validação, 409 conflito |
 | PUT | `/api/agendamentos/:id` | campos da entidade | 200 + agendamento atualizado | 400, 404, 409 |
@@ -106,7 +118,8 @@ O banco `database.sqlite` é criado automaticamente em `backend/` na primeira ex
 ```bash
 curl http://localhost:3000/api/agendamentos
 curl -X POST http://localhost:3000/api/agendamentos -H "Content-Type: application/json" \
-     -d '{"cliente":"Maria Silva","telefone":"45999998888","tipo_evento":"Aniversário","data_evento":"2026-12-05","hora_inicio":"14:00","hora_fim":"18:00","convidados":50,"valor":1200}'
+     -d '{"nome":"Aniversário da Maria","cliente":"Maria Silva","telefone":"45999998888","tipo_evento":"Aniversário","data_evento":"2026-12-05","hora_inicio":"14:00","hora_fim":"18:00","convidados":50,"valor":1200}'
+curl "http://localhost:3000/api/agendamentos?busca=aniversrio"
 curl -X DELETE http://localhost:3000/api/agendamentos/1
 ```
 

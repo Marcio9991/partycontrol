@@ -3,6 +3,7 @@ const controller = require("../controllers/agendamentoController");
 
 const router = express.Router();
 
+router.get("/tipos", controller.tipos);
 router.get("/", controller.listar);
 router.get("/:id", controller.buscar);
 router.post("/", controller.criar);

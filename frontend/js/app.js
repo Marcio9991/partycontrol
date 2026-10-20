@@ -5,11 +5,15 @@ const vazio = document.getElementById("vazio");
 const btnSalvar = document.getElementById("btn-salvar");
 const btnCancelar = document.getElementById("btn-cancelar");
 const tituloForm = document.getElementById("titulo-form");
+const filtroBusca = document.getElementById("filtro-busca");
 const filtroData = document.getElementById("filtro-data");
 const filtroStatus = document.getElementById("filtro-status");
 const btnLimparFiltros = document.getElementById("btn-limpar-filtros");
 
+const campoTelefone = document.getElementById("telefone");
+
 const CAMPOS = [
+  "nome",
   "cliente",
   "telefone",
   "tipo_evento",
@@ -30,6 +34,14 @@ function mostrarMensagem(texto, tipo) {
     mensagem.textContent = "";
     mensagem.className = "mensagem";
   }, 5000);
+}
+
+function formatarTelefone(valor) {
+  const d = String(valor ?? "").replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
 }
 
 function formatarData(iso) {
@@ -80,9 +92,11 @@ function desenharTabela(agendamentos) {
   agendamentos.forEach((item) => {
     const tr = document.createElement("tr");
 
+    tr.appendChild(criarCelula(item.nome));
     tr.appendChild(criarCelula(formatarData(item.data_evento)));
     tr.appendChild(criarCelula(`${item.hora_inicio} às ${item.hora_fim}`));
     tr.appendChild(criarCelula(item.cliente));
+    tr.appendChild(criarCelula(item.telefone));
     tr.appendChild(criarCelula(item.tipo_evento));
     tr.appendChild(criarCelula(item.convidados));
     tr.appendChild(criarCelula(formatarValor(item.valor)));
@@ -96,11 +110,11 @@ function desenharTabela(agendamentos) {
 
     const tdAcoes = document.createElement("td");
     tdAcoes.appendChild(
-      criarBotao("Editar", `Editar agendamento de ${item.cliente}`, "btn-secundario", () => iniciarEdicao(item.id))
+      criarBotao("Editar", `Editar agendamento ${item.nome}`, "btn-secundario", () => iniciarEdicao(item.id))
     );
     tdAcoes.appendChild(document.createTextNode(" "));
     tdAcoes.appendChild(
-      criarBotao("Excluir", `Excluir agendamento de ${item.cliente}`, "btn-perigo", () => excluirAgendamento(item))
+      criarBotao("Excluir", `Excluir agendamento ${item.nome}`, "btn-perigo", () => excluirAgendamento(item))
     );
     tr.appendChild(tdAcoes);
 
@@ -111,6 +125,7 @@ function desenharTabela(agendamentos) {
 async function carregar() {
   try {
     const agendamentos = await api.listar({
+      busca: filtroBusca.value.trim(),
       data: filtroData.value,
       status: filtroStatus.value,
     });
@@ -138,7 +153,7 @@ async function iniciarEdicao(id) {
 }
 
 async function excluirAgendamento(item) {
-  if (!confirm(`Excluir o agendamento de ${item.cliente}?`)) return;
+  if (!confirm(`Excluir o agendamento "${item.nome}"?`)) return;
   try {
     await api.excluir(item.id);
     mostrarMensagem("Agendamento excluído.", "sucesso");
@@ -169,10 +184,21 @@ form.addEventListener("submit", async (evento) => {
   }
 });
 
+campoTelefone.addEventListener("input", () => {
+  campoTelefone.value = formatarTelefone(campoTelefone.value);
+});
+
+let temporizadorBusca;
+filtroBusca.addEventListener("input", () => {
+  clearTimeout(temporizadorBusca);
+  temporizadorBusca = setTimeout(carregar, 250);
+});
+
 btnCancelar.addEventListener("click", limparFormulario);
 filtroData.addEventListener("change", carregar);
 filtroStatus.addEventListener("change", carregar);
 btnLimparFiltros.addEventListener("click", () => {
+  filtroBusca.value = "";
   filtroData.value = "";
   filtroStatus.value = "";
   carregar();

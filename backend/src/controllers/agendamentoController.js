@@ -5,9 +5,28 @@ function idValido(valor) {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+function verificarRegras(dados, ignorarId = null) {
+  const erros = Agendamento.validar(dados);
+  if (erros.length) return { status: 400, erro: erros.join(" ") };
+
+  if (Agendamento.nomeEmUso(dados.nome_chave, ignorarId)) {
+    return { status: 409, erro: "Já existe um agendamento com esse nome. Escolha outro." };
+  }
+
+  if (dados.status !== "cancelado" && Agendamento.existeConflito(dados, ignorarId)) {
+    return { status: 409, erro: "Já existe um agendamento nesse horário." };
+  }
+
+  return null;
+}
+
+exports.tipos = (req, res) => {
+  res.status(200).json(Agendamento.TIPOS_EVENTO);
+};
+
 exports.listar = (req, res) => {
-  const { data, status } = req.query;
-  res.status(200).json(Agendamento.listar({ data, status }));
+  const { data, status, busca } = req.query;
+  res.status(200).json(Agendamento.listar({ data, status, busca }));
 };
 
 exports.buscar = (req, res) => {
@@ -22,12 +41,8 @@ exports.buscar = (req, res) => {
 
 exports.criar = (req, res) => {
   const dados = Agendamento.normalizar(req.body);
-  const erros = Agendamento.validar(dados);
-  if (erros.length) return res.status(400).json({ erro: erros.join(" ") });
-
-  if (dados.status !== "cancelado" && Agendamento.existeConflito(dados)) {
-    return res.status(409).json({ erro: "Já existe um agendamento nesse horário." });
-  }
+  const problema = verificarRegras(dados);
+  if (problema) return res.status(problema.status).json({ erro: problema.erro });
 
   res.status(201).json(Agendamento.criar(dados));
 };
@@ -41,12 +56,8 @@ exports.atualizar = (req, res) => {
   }
 
   const dados = Agendamento.normalizar(req.body);
-  const erros = Agendamento.validar(dados);
-  if (erros.length) return res.status(400).json({ erro: erros.join(" ") });
-
-  if (dados.status !== "cancelado" && Agendamento.existeConflito(dados, id)) {
-    return res.status(409).json({ erro: "Já existe um agendamento nesse horário." });
-  }
+  const problema = verificarRegras(dados, id);
+  if (problema) return res.status(problema.status).json({ erro: problema.erro });
 
   res.status(200).json(Agendamento.atualizar(id, dados));
 };

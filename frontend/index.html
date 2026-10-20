@@ -22,16 +22,31 @@
 
         <div class="grade">
           <div class="campo">
+            <label for="nome">Nome do agendamento (único)</label>
+            <input type="text" id="nome" maxlength="80" placeholder="Ex.: Aniversário da Maria" required>
+          </div>
+          <div class="campo">
             <label for="cliente">Cliente</label>
             <input type="text" id="cliente" maxlength="100" required>
           </div>
           <div class="campo">
             <label for="telefone">Telefone</label>
-            <input type="tel" id="telefone" placeholder="(45) 99999-9999" required>
+            <input type="tel" id="telefone" inputmode="numeric" maxlength="16" placeholder="(00) 0 0000-0000" autocomplete="tel" required>
           </div>
           <div class="campo">
             <label for="tipo_evento">Tipo de evento</label>
-            <input type="text" id="tipo_evento" maxlength="60" placeholder="Aniversário, casamento..." required>
+            <select id="tipo_evento" required>
+              <option value="">Selecione...</option>
+              <option value="Aniversário">Aniversário</option>
+              <option value="Casamento">Casamento</option>
+              <option value="Formatura">Formatura</option>
+              <option value="Chá de bebê">Chá de bebê</option>
+              <option value="Chá de panela">Chá de panela</option>
+              <option value="Confraternização">Confraternização</option>
+              <option value="Batizado">Batizado</option>
+              <option value="Reunião">Reunião</option>
+              <option value="Outro">Outro</option>
+            </select>
           </div>
           <div class="campo">
             <label for="data_evento">Data</label>
@@ -79,6 +94,10 @@
       <div class="cabecalho-lista">
         <h2 id="titulo-lista">Agendamentos</h2>
         <div class="filtros">
+          <div class="campo campo-busca">
+            <label for="filtro-busca">Pesquisar</label>
+            <input type="search" id="filtro-busca" placeholder="Nome, cliente ou tipo de evento" autocomplete="off">
+          </div>
           <div class="campo">
             <label for="filtro-data">Data</label>
             <input type="date" id="filtro-data">
@@ -101,9 +120,11 @@
           <caption class="sr-only">Lista de agendamentos do salão</caption>
           <thead>
             <tr>
+              <th scope="col">Nome</th>
               <th scope="col">Data</th>
               <th scope="col">Horário</th>
               <th scope="col">Cliente</th>
+              <th scope="col">Telefone</th>
               <th scope="col">Evento</th>
               <th scope="col">Convidados</th>
               <th scope="col">Valor</th>
