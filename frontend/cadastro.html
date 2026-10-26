@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PartyControl - Cadastro</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="pagina-login">
+  <main class="cartao cartao-login">
+    <h1>PartyControl</h1>
+    <p class="subtitulo">Crie sua conta com um e-mail do Gmail</p>
+
+    <div id="mensagem" class="mensagem" role="alert" aria-live="assertive"></div>
+
+    <form id="form-cadastro" novalidate>
+      <div class="campo">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" maxlength="80" autocomplete="name" autofocus required>
+      </div>
+      <div class="campo">
+        <label for="email">E-mail (Gmail)</label>
+        <input type="email" id="email" placeholder="seunome@gmail.com" autocomplete="email" required>
+      </div>
+      <div class="campo">
+        <label for="senha">Senha (mínimo 6 caracteres)</label>
+        <input type="password" id="senha" minlength="6" maxlength="100" autocomplete="new-password" required>
+      </div>
+      <div class="campo">
+        <label for="confirmar">Confirmar senha</label>
+        <input type="password" id="confirmar" maxlength="100" autocomplete="new-password" required>
+      </div>
+      <button type="submit" id="btn-cadastrar" class="btn btn-primario btn-bloco">Criar conta</button>
+    </form>
+
+    <p class="links-auth">
+      Já tem conta? <a href="login.html">Entrar</a><br>
+      <a href="index.html">Voltar ao início</a>
+    </p>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/cadastro.js"></script>
+</body>
+</html>

@@ -24,6 +24,32 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL UNIQUE,
+    senha_hash TEXT NOT NULL,
+    senha_sal TEXT NOT NULL,
+    criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS sessoes (
+    token TEXT PRIMARY KEY,
+    usuario_id INTEGER NOT NULL,
+    expira_em INTEGER NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
+  );
+`);
+
+const colunasUsuarios = db.prepare("PRAGMA table_info(usuarios)").all().map((c) => c.name);
+
+if (colunasUsuarios.includes("usuario") && !colunasUsuarios.includes("email")) {
+  db.exec("ALTER TABLE usuarios RENAME COLUMN usuario TO email");
+}
+if (!colunasUsuarios.includes("nome")) {
+  db.exec("ALTER TABLE usuarios ADD COLUMN nome TEXT NOT NULL DEFAULT ''");
+}
+
 const colunas = db.prepare("PRAGMA table_info(agendamentos)").all().map((c) => c.name);
 
 if (!colunas.includes("nome")) {

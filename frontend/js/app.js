@@ -1,3 +1,10 @@
+if (!api.logado()) {
+  window.location.replace("login.html");
+}
+
+document.getElementById("nome-usuario").textContent = api.usuario();
+document.getElementById("btn-sair").addEventListener("click", () => api.sair());
+
 const form = document.getElementById("form-agendamento");
 const tabelaCorpo = document.getElementById("tabela-corpo");
 const mensagem = document.getElementById("mensagem");

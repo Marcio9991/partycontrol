@@ -2,6 +2,8 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const agendamentoRoutes = require("./routes/agendamentoRoutes");
+const authRoutes = require("./routes/authRoutes");
+const { exigirLogin } = require("./middlewares/autenticacao");
 
 const app = express();
 
@@ -12,7 +14,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/api/agendamentos", agendamentoRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/agendamentos", exigirLogin, agendamentoRoutes);
 app.use(express.static(path.join(__dirname, "..", "..", "frontend")));
 
 app.use("/api", (req, res) => {

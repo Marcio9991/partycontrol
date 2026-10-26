@@ -1,10 +1,36 @@
-const API_URL = "/api/agendamentos";
+const API_BASE = window.location.port === "3000" ? "" : "http://localhost:3000";
+const API_URL = `${API_BASE}/api/agendamentos`;
+const AUTH_URL = `${API_BASE}/api/auth`;
+const CHAVE_TOKEN = "partycontrol_token";
+const CHAVE_USUARIO = "partycontrol_usuario";
 
-async function requisitar(url, opcoes = {}) {
-  const resposta = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...opcoes,
-  });
+function guardarSessao(token, usuario) {
+  localStorage.setItem(CHAVE_TOKEN, token);
+  localStorage.setItem(CHAVE_USUARIO, usuario);
+}
+
+function limparSessao() {
+  localStorage.removeItem(CHAVE_TOKEN);
+  localStorage.removeItem(CHAVE_USUARIO);
+}
+
+async function requisitar(url, opcoes = {}, comToken = true) {
+  const headers = { "Content-Type": "application/json" };
+  const token = localStorage.getItem(CHAVE_TOKEN);
+  if (comToken && token) headers.Authorization = `Bearer ${token}`;
+
+  let resposta;
+  try {
+    resposta = await fetch(url, { ...opcoes, headers });
+  } catch (erro) {
+    throw new Error("Não foi possível conectar ao servidor. Verifique se o backend está rodando (npm start na pasta backend).");
+  }
+
+  if (resposta.status === 401 && comToken) {
+    limparSessao();
+    window.location.replace("login.html");
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
 
   if (resposta.status === 204) return null;
 
@@ -18,6 +44,38 @@ async function requisitar(url, opcoes = {}) {
 }
 
 const api = {
+  logado() {
+    return Boolean(localStorage.getItem(CHAVE_TOKEN));
+  },
+  usuario() {
+    return localStorage.getItem(CHAVE_USUARIO) || "";
+  },
+  async login(email, senha) {
+    const resposta = await requisitar(
+      `${AUTH_URL}/login`,
+      { method: "POST", body: JSON.stringify({ email, senha }) },
+      false
+    );
+    guardarSessao(resposta.token, resposta.nome);
+    return resposta;
+  },
+  async registrar(nome, email, senha) {
+    const resposta = await requisitar(
+      `${AUTH_URL}/registrar`,
+      { method: "POST", body: JSON.stringify({ nome, email, senha }) },
+      false
+    );
+    guardarSessao(resposta.token, resposta.nome);
+    return resposta;
+  },
+  async sair() {
+    try {
+      await requisitar(`${AUTH_URL}/logout`, { method: "POST" });
+    } catch (erro) {
+    }
+    limparSessao();
+    window.location.replace("index.html");
+  },
   listar(filtros = {}) {
     const params = new URLSearchParams();
     if (filtros.data) params.set("data", filtros.data);

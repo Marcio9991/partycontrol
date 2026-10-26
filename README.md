@@ -19,11 +19,16 @@ PartyControl/
 │   │   ├── config/
 │   │   │   └── database.js            # Conexão com SQLite e criação da tabela
 │   │   ├── controllers/
-│   │   │   └── agendamentoController.js # Status HTTP e formato da resposta
+│   │   │   ├── agendamentoController.js # Status HTTP e formato da resposta
+│   │   │   └── authController.js      # Cadastro, login, logout e consulta de sessão
+│   │   ├── middlewares/
+│   │   │   └── autenticacao.js        # Bloqueia rotas sem login válido
 │   │   ├── models/
-│   │   │   └── agendamentoModel.js    # Validação, conflito de horário e consultas
+│   │   │   ├── agendamentoModel.js    # Validação, conflito de horário e consultas
+│   │   │   └── usuarioModel.js        # Cadastro por Gmail, senha com hash e sessões
 │   │   ├── routes/
-│   │   │   └── agendamentoRoutes.js   # Mapeamento dos endpoints HTTP
+│   │   │   ├── agendamentoRoutes.js   # Endpoints dos agendamentos
+│   │   │   └── authRoutes.js          # Endpoints de autenticação
 │   │   ├── utils/
 │   │   │   └── texto.js               # Normalização de texto e busca tolerante a erros
 │   │   └── app.js                     # Configuração do Express e middlewares
@@ -33,9 +38,15 @@ PartyControl/
 ├── frontend/
 │   ├── css/styles.css                 # Estilização e layout
 │   ├── js/
-│   │   ├── api.js                     # Comunicação com o backend (Fetch API)
-│   │   └── app.js                     # DOM e eventos
-│   └── index.html                     # Formulário, filtros e tabela
+│   │   ├── api.js                     # Comunicação com o backend e token de sessão
+│   │   ├── app.js                     # DOM e eventos do painel
+│   │   ├── lobby.js                   # Botões do lobby conforme o estado de login
+│   │   ├── login.js                   # Eventos da tela de login
+│   │   └── cadastro.js                # Eventos da tela de cadastro
+│   ├── index.html                     # Lobby (página inicial)
+│   ├── login.html                     # Tela de login
+│   ├── cadastro.html                  # Tela de cadastro
+│   └── painel.html                    # Painel: formulário, filtros e tabela
 │
 ├── .gitignore
 └── README.md
@@ -59,6 +70,34 @@ flowchart LR
   end
   DB --> SQLITE[(database.sqlite)]
 ```
+
+## Telas e acesso
+
+| Tela | Arquivo | Função |
+|---|---|---|
+| Lobby | `index.html` | Página inicial pública, com os botões **Entrar** e **Cadastrar** no canto superior direito |
+| Cadastro | `cadastro.html` | Nome, e-mail do Gmail, senha e confirmação de senha |
+| Login | `login.html` | E-mail do Gmail e senha |
+| Painel | `painel.html` | CRUD dos agendamentos (só com login) |
+
+Fluxo: o visitante chega ao lobby, cria a conta em **Cadastrar** (já entra logado ao concluir) e
+nas próximas vezes usa **Entrar**. Quem já está logado vê no lobby os botões **Ir para o painel** e **Sair**.
+
+**Regras do cadastro:**
+
+- O e-mail deve ser do Gmail (`nome@gmail.com`) e não pode se repetir (maiúsculas e minúsculas não diferenciam).
+- A senha deve ter de 6 a 100 caracteres.
+- A senha nunca é guardada em texto puro: usa-se hash com `scrypt` e sal individual (módulo `crypto`
+  do Node, sem dependência extra). Contas e senhas ficam no `database.sqlite`, na tabela `usuarios`.
+- O sistema confere o formato e o domínio do e-mail, mas **não envia código de confirmação**: não
+  verifica se a pessoa é de fato dona da conta Gmail. Isso exigiria login com Google (OAuth) ou envio de e-mail.
+
+**Sessão:** ao entrar, o servidor gera um token e o navegador o guarda no `localStorage`. A sessão vale
+7 dias ou até clicar em **Sair**. Todas as rotas `/api/agendamentos` exigem o token; sem ele a API
+responde **401** e o frontend volta para a tela de login.
+
+Bancos criados em versões anteriores são atualizados sozinhos (a coluna `usuario` passa a se chamar
+`email`). Contas antigas sem e-mail do Gmail deixam de ser usadas: crie uma nova em **Cadastrar**.
 
 ## Entidade Agendamento
 
@@ -91,6 +130,10 @@ ignora maiúsculas, minúsculas e acentos e tolera pequenos erros de digitação
 
 | Método | Rota | Corpo | Sucesso | Erros |
 |---|---|---|---|---|
+| POST | `/api/auth/registrar` | `{ nome, email, senha }` | 201 + token | 400 validação, 409 e-mail em uso |
+| POST | `/api/auth/login` | `{ email, senha }` | 200 + token | 400, 401 |
+| POST | `/api/auth/logout` | — (com token) | 204 | 401 |
+| GET | `/api/auth/sessao` | — (com token) | 200 + nome e e-mail | 401 |
 | GET | `/api/agendamentos` | — (filtros opcionais `?busca=`, `?data=` e `?status=`) | 200 + lista | — |
 | GET | `/api/agendamentos/tipos` | — | 200 + tipos de evento | — |
 | GET | `/api/agendamentos/:id` | — | 200 + agendamento | 400 ID inválido, 404 |
@@ -98,6 +141,7 @@ ignora maiúsculas, minúsculas e acentos e tolera pequenos erros de digitação
 | PUT | `/api/agendamentos/:id` | campos da entidade | 200 + agendamento atualizado | 400, 404, 409 |
 | DELETE | `/api/agendamentos/:id` | — | 204 sem corpo | 400, 404 |
 
+As rotas de `/api/agendamentos` exigem o cabeçalho `Authorization: Bearer <token>`.
 Todos os erros seguem o formato `{ "erro": "mensagem" }`.
 
 ## Como rodar
@@ -110,17 +154,24 @@ npm install
 npm start
 ```
 
-Abra **http://localhost:3000**. O backend também serve o frontend, então tudo roda com um comando.
+Abra **http://localhost:3000** (cai no lobby). O backend também serve o frontend, então tudo roda com um comando.
+O terminal precisa continuar aberto com o servidor rodando; se aparecer "NetworkError" ao entrar,
+o backend não está no ar. Abrir o frontend por outra porta (Live Server) também funciona, desde que
+o backend esteja rodando em `localhost:3000`.
 O banco `database.sqlite` é criado automaticamente em `backend/` na primeira execução.
 
 ## Testando a API sem o frontend
 
 ```bash
-curl http://localhost:3000/api/agendamentos
-curl -X POST http://localhost:3000/api/agendamentos -H "Content-Type: application/json" \
+curl -X POST http://localhost:3000/api/auth/registrar -H "Content-Type: application/json" \
+     -d '{"nome":"Maria Silva","email":"maria@gmail.com","senha":"segredo1"}'
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login -H "Content-Type: application/json" \
+     -d '{"email":"maria@gmail.com","senha":"segredo1"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
+curl http://localhost:3000/api/agendamentos -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:3000/api/agendamentos -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
      -d '{"nome":"Aniversário da Maria","cliente":"Maria Silva","telefone":"45999998888","tipo_evento":"Aniversário","data_evento":"2026-12-05","hora_inicio":"14:00","hora_fim":"18:00","convidados":50,"valor":1200}'
-curl "http://localhost:3000/api/agendamentos?busca=aniversrio"
-curl -X DELETE http://localhost:3000/api/agendamentos/1
+curl "http://localhost:3000/api/agendamentos?busca=aniversrio" -H "Authorization: Bearer $TOKEN"
+curl -X DELETE http://localhost:3000/api/agendamentos/1 -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Fluxo de trabalho no repositório
@@ -136,4 +187,5 @@ curl -X DELETE http://localhost:3000/api/agendamentos/1
 2. Visualização em calendário mensal.
 3. Variáveis de ambiente com `.env`.
 4. Testes automatizados com `node:test` e `supertest`.
-5. Autenticação para proteger as rotas de escrita.
+5. Login com Google (OAuth) para confirmar de fato a posse do Gmail, e recuperação de senha.
+6. Separar os agendamentos por usuário (hoje todos os usuários logados veem os mesmos dados).
