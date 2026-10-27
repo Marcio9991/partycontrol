@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../config/database");
+const { chaveEmail } = require("../utils/email");
 
 const DURACAO_SESSAO_MS = 7 * 24 * 60 * 60 * 1000;
 const REGEX_GMAIL = /^[a-z0-9._%+-]+@gmail\.com$/;
@@ -29,21 +30,21 @@ function validarCadastro({ nome, email, senha }) {
 }
 
 function emailEmUso(email) {
-  return Boolean(db.prepare("SELECT id FROM usuarios WHERE email = ? COLLATE NOCASE").get(email));
+  return Boolean(db.prepare("SELECT id FROM usuarios WHERE email_chave = ?").get(chaveEmail(email)));
 }
 
 function criarUsuario({ nome, email, senha }) {
   const sal = crypto.randomBytes(16).toString("hex");
   const resultado = db
-    .prepare("INSERT INTO usuarios (nome, email, senha_hash, senha_sal) VALUES (?, ?, ?, ?)")
-    .run(nome, email, gerarHash(senha, sal), sal);
+    .prepare("INSERT INTO usuarios (nome, email, email_chave, senha_hash, senha_sal) VALUES (?, ?, ?, ?, ?)")
+    .run(nome, email, chaveEmail(email), gerarHash(senha, sal), sal);
   return { id: Number(resultado.lastInsertRowid), nome, email };
 }
 
 function verificarCredenciais(email, senha) {
   const linha = db
-    .prepare("SELECT * FROM usuarios WHERE email = ? COLLATE NOCASE")
-    .get(normalizarEmail(email));
+    .prepare("SELECT * FROM usuarios WHERE email_chave = ?")
+    .get(chaveEmail(email));
   if (!linha) return null;
 
   const calculado = Buffer.from(gerarHash(String(senha ?? ""), linha.senha_sal), "hex");

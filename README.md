@@ -30,7 +30,8 @@ PartyControl/
 │   │   │   ├── agendamentoRoutes.js   # Endpoints dos agendamentos
 │   │   │   └── authRoutes.js          # Endpoints de autenticação
 │   │   ├── utils/
-│   │   │   └── texto.js               # Normalização de texto e busca tolerante a erros
+│   │   │   ├── texto.js               # Normalização de texto e busca tolerante a erros
+│   │   └── email.js               # Chave canônica do e-mail (detecta Gmail repetido)
 │   │   └── app.js                     # Configuração do Express e middlewares
 │   ├── server.js                      # Ponto de entrada
 │   └── package.json
@@ -40,10 +41,10 @@ PartyControl/
 │   ├── js/
 │   │   ├── api.js                     # Comunicação com o backend e token de sessão
 │   │   ├── app.js                     # DOM e eventos do painel
-│   │   ├── lobby.js                   # Botões do lobby conforme o estado de login
+│   │   ├── lobby.js                   # Botões da página inicial conforme o estado de login
 │   │   ├── login.js                   # Eventos da tela de login
 │   │   └── cadastro.js                # Eventos da tela de cadastro
-│   ├── index.html                     # Lobby (página inicial)
+│   ├── index.html                     # Página inicial (descrição e escolha entre entrar ou cadastrar)
 │   ├── login.html                     # Tela de login
 │   ├── cadastro.html                  # Tela de cadastro
 │   └── painel.html                    # Painel: formulário, filtros e tabela
@@ -75,17 +76,20 @@ flowchart LR
 
 | Tela | Arquivo | Função |
 |---|---|---|
-| Lobby | `index.html` | Página inicial pública, com os botões **Entrar** e **Cadastrar** no canto superior direito |
+| Início | `index.html` | Página inicial pública: breve descrição do sistema e a escolha entre **Já tenho conta** e **Quero me cadastrar** (os botões **Entrar** e **Cadastrar** também ficam no canto superior direito) |
 | Cadastro | `cadastro.html` | Nome, e-mail do Gmail, senha e confirmação de senha |
 | Login | `login.html` | E-mail do Gmail e senha |
 | Painel | `painel.html` | CRUD dos agendamentos (só com login) |
 
-Fluxo: o visitante chega ao lobby, cria a conta em **Cadastrar** (já entra logado ao concluir) e
-nas próximas vezes usa **Entrar**. Quem já está logado vê no lobby os botões **Ir para o painel** e **Sair**.
+Fluxo: o visitante chega à página inicial, cria a conta em **Cadastrar** (já entra logado ao concluir) e
+nas próximas vezes usa **Entrar**. Quem já está logado vê na página inicial os botões **Ir para o painel** e **Sair**.
 
 **Regras do cadastro:**
 
-- O e-mail deve ser do Gmail (`nome@gmail.com`) e não pode se repetir (maiúsculas e minúsculas não diferenciam).
+- O e-mail deve ser do Gmail (`nome@gmail.com`) e não pode se repetir. Se já houver conta com ele, a tela
+  de cadastro mostra a mensagem de erro, marca o campo e oferece o link para o login (API: **409**).
+- A checagem segue a regra do próprio Gmail: maiúsculas, pontos e `+etiqueta` não criam outra conta
+  (`Ana.Souza@gmail.com`, `anasouza@gmail.com` e `ana.souza+festa@gmail.com` são a mesma caixa).
 - A senha deve ter de 6 a 100 caracteres.
 - A senha nunca é guardada em texto puro: usa-se hash com `scrypt` e sal individual (módulo `crypto`
   do Node, sem dependência extra). Contas e senhas ficam no `database.sqlite`, na tabela `usuarios`.
@@ -97,7 +101,7 @@ nas próximas vezes usa **Entrar**. Quem já está logado vê no lobby os botõe
 responde **401** e o frontend volta para a tela de login.
 
 Bancos criados em versões anteriores são atualizados sozinhos (a coluna `usuario` passa a se chamar
-`email`). Contas antigas sem e-mail do Gmail deixam de ser usadas: crie uma nova em **Cadastrar**.
+`email` e é criada a coluna `email_chave`). Contas antigas sem e-mail do Gmail deixam de ser usadas: crie uma nova em **Cadastrar**.
 
 ## Entidade Agendamento
 
@@ -154,7 +158,7 @@ npm install
 npm start
 ```
 
-Abra **http://localhost:3000** (cai no lobby). O backend também serve o frontend, então tudo roda com um comando.
+Abra **http://localhost:3000** (abre a página inicial). O backend também serve o frontend, então tudo roda com um comando.
 O terminal precisa continuar aberto com o servidor rodando; se aparecer "NetworkError" ao entrar,
 o backend não está no ar. Abrir o frontend por outra porta (Live Server) também funciona, desde que
 o backend esteja rodando em `localhost:3000`.

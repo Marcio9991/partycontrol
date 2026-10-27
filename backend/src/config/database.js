@@ -1,5 +1,6 @@
 const path = require("path");
 const Database = require("better-sqlite3");
+const { chaveEmail } = require("../utils/email");
 
 const db = new Database(path.join(__dirname, "..", "..", "database.sqlite"));
 
@@ -29,6 +30,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL DEFAULT '',
     email TEXT NOT NULL UNIQUE,
+    email_chave TEXT NOT NULL DEFAULT '',
     senha_hash TEXT NOT NULL,
     senha_sal TEXT NOT NULL,
     criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -48,6 +50,21 @@ if (colunasUsuarios.includes("usuario") && !colunasUsuarios.includes("email")) {
 }
 if (!colunasUsuarios.includes("nome")) {
   db.exec("ALTER TABLE usuarios ADD COLUMN nome TEXT NOT NULL DEFAULT ''");
+}
+
+const colunasAtuais = db.prepare("PRAGMA table_info(usuarios)").all().map((c) => c.name);
+if (!colunasAtuais.includes("email_chave")) {
+  db.exec("ALTER TABLE usuarios ADD COLUMN email_chave TEXT NOT NULL DEFAULT ''");
+}
+
+const semChave = db.prepare("SELECT id, email FROM usuarios WHERE email_chave = ''").all();
+const gravarChave = db.prepare("UPDATE usuarios SET email_chave = ? WHERE id = ?");
+semChave.forEach((u) => gravarChave.run(chaveEmail(u.email), u.id));
+
+try {
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_email_chave ON usuarios (email_chave)");
+} catch (erro) {
+  console.warn("Não foi possível criar o índice único de e-mail:", erro.message);
 }
 
 const colunas = db.prepare("PRAGMA table_info(agendamentos)").all().map((c) => c.name);

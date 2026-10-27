@@ -12,6 +12,7 @@ function distancia(a, b) {
   if (!a.length) return b.length;
   if (!b.length) return a.length;
 
+  let duasAntes = null;
   let anterior = Array.from({ length: b.length + 1 }, (_, i) => i);
 
   for (let i = 1; i <= a.length; i++) {
@@ -20,9 +21,10 @@ function distancia(a, b) {
       const custo = a[i - 1] === b[j - 1] ? 0 : 1;
       atual[j] = Math.min(atual[j - 1] + 1, anterior[j] + 1, anterior[j - 1] + custo);
       if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-        atual[j] = Math.min(atual[j], anterior[j - 2] + 1);
+        atual[j] = Math.min(atual[j], duasAntes[j - 2] + 1);
       }
     }
+    duasAntes = anterior;
     anterior = atual;
   }
 
@@ -52,4 +54,4 @@ function combinaBusca(busca, textos) {
   return termos.every((termo) => palavras.some((palavra) => palavraCombina(termo, palavra)));
 }
 
-module.exports = { normalizarTexto, combinaBusca };
+module.exports = { normalizarTexto, combinaBusca, distancia };

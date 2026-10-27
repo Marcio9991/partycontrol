@@ -1,4 +1,7 @@
-const API_BASE = window.location.port === "3000" ? "" : "http://localhost:3000";
+// O Express entrega frontend e API na mesma origem, independentemente da porta
+// escolhida (PORT), domínio ou proxy. Para servir o frontend separadamente,
+// configure window.PARTYCONTROL_API_BASE antes deste arquivo ser carregado.
+const API_BASE = window.PARTYCONTROL_API_BASE || "";
 const API_URL = `${API_BASE}/api/agendamentos`;
 const AUTH_URL = `${API_BASE}/api/auth`;
 const CHAVE_TOKEN = "partycontrol_token";
@@ -37,7 +40,9 @@ async function requisitar(url, opcoes = {}, comToken = true) {
   const corpo = await resposta.json().catch(() => ({}));
 
   if (!resposta.ok) {
-    throw new Error(corpo.erro || "Erro ao comunicar com o servidor.");
+    const erro = new Error(corpo.erro || "Erro ao comunicar com o servidor.");
+    erro.status = resposta.status;
+    throw erro;
   }
 
   return corpo;

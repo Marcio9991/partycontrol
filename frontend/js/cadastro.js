@@ -12,15 +12,37 @@ if (api.logado()) {
   window.location.replace("painel.html");
 }
 
-function mostrarErro(texto) {
+function limparErro() {
+  mensagemCadastro.textContent = "";
+  mensagemCadastro.className = "mensagem";
+  campoEmail.classList.remove("invalido");
+  campoEmail.removeAttribute("aria-invalid");
+}
+
+function mostrarErro(texto, comLinkLogin = false) {
   mensagemCadastro.textContent = texto;
   mensagemCadastro.className = "mensagem erro";
+
+  if (comLinkLogin) {
+    const link = document.createElement("a");
+    link.href = "login.html";
+    link.textContent = "Ir para o login";
+    mensagemCadastro.append(" ", link);
+  }
 }
+
+function marcarEmailInvalido() {
+  campoEmail.classList.add("invalido");
+  campoEmail.setAttribute("aria-invalid", "true");
+  campoEmail.focus();
+  campoEmail.select();
+}
+
+campoEmail.addEventListener("input", limparErro);
 
 formCadastro.addEventListener("submit", async (evento) => {
   evento.preventDefault();
-  mensagemCadastro.textContent = "";
-  mensagemCadastro.className = "mensagem";
+  limparErro();
 
   const nome = campoNome.value.trim();
   const email = campoEmail.value.trim();
@@ -31,6 +53,7 @@ formCadastro.addEventListener("submit", async (evento) => {
   }
   if (!REGEX_GMAIL.test(email)) {
     mostrarErro("Use um e-mail do Gmail (exemplo: nome@gmail.com).");
+    marcarEmailInvalido();
     return;
   }
   if (campoSenha.value.length < 6) {
@@ -47,7 +70,12 @@ formCadastro.addEventListener("submit", async (evento) => {
     await api.registrar(nome, email, campoSenha.value);
     window.location.replace("painel.html");
   } catch (erro) {
-    mostrarErro(erro.message);
+    if (erro.status === 409) {
+      mostrarErro(erro.message, true);
+      marcarEmailInvalido();
+    } else {
+      mostrarErro(erro.message);
+    }
   } finally {
     btnCadastrar.disabled = false;
   }

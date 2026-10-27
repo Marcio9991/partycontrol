@@ -17,7 +17,7 @@ exports.registrar = (req, res) => {
   if (erros.length) return res.status(400).json({ erro: erros.join(" ") });
 
   if (Usuario.emailEmUso(dados.email)) {
-    return res.status(409).json({ erro: "Já existe uma conta com esse e-mail." });
+    return res.status(409).json({ erro: "Este e-mail já está cadastrado. Entre com a sua conta." });
   }
 
   const usuario = Usuario.criarUsuario(dados);

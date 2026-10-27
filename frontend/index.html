@@ -22,30 +22,29 @@
     </nav>
   </header>
 
-  <main>
-    <section class="lobby-hero">
-      <h1>Organize os eventos do seu salão de festa</h1>
-      <p>Cadastre agendamentos, evite choque de horários e encontre qualquer reserva em segundos.</p>
-      <a id="lobby-cta" href="cadastro.html" class="btn btn-claro btn-grande">Criar minha conta</a>
-    </section>
+  <main class="inicio">
+    <section class="cartao inicio-cartao">
+      <h1>Bem-vindo ao PartyControl</h1>
+      <p class="inicio-descricao">
+        Sistema para controlar os agendamentos de um salão de festa: cadastre os eventos,
+        evite choques de horário e encontre qualquer reserva rapidamente.
+      </p>
 
-    <section class="lobby-recursos" aria-label="Recursos">
-      <article class="cartao">
-        <h2>Agendamentos completos</h2>
-        <p>Cliente, telefone, tipo de evento, data, horário, convidados, valor e status em um só lugar.</p>
-      </article>
-      <article class="cartao">
-        <h2>Sem choque de horário</h2>
-        <p>O sistema avisa quando já existe um evento marcado no mesmo período.</p>
-      </article>
-      <article class="cartao">
-        <h2>Pesquisa rápida</h2>
-        <p>Busque pelo nome do agendamento, mesmo com letras trocadas ou sem acento.</p>
-      </article>
+      <div id="escolha-visitante">
+        <p class="inicio-escolha">Para continuar, escolha uma opção:</p>
+        <div class="inicio-botoes">
+          <a href="login.html" class="btn btn-primario btn-grande">Já tenho conta</a>
+          <a href="cadastro.html" class="btn btn-contorno btn-grande">Quero me cadastrar</a>
+        </div>
+      </div>
+
+      <div id="escolha-logado" hidden>
+        <div class="inicio-botoes">
+          <a href="painel.html" class="btn btn-primario btn-grande">Abrir meu painel</a>
+        </div>
+      </div>
     </section>
   </main>
-
-  <footer class="lobby-rodape">PartyControl &middot; Projeto prático de CRUD</footer>
 
   <script src="js/api.js"></script>
   <script src="js/lobby.js"></script>
